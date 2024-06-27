@@ -105,7 +105,7 @@ int ParsedHeader_remove (struct ParsedRequest *pr, const char * key);
 /* debug() prints out debugging info if DEBUG is set to 1 */
 void debug(const char * format, ...);
 
-/* Example usage:
+/* Example usage::
 
    const char *c = 
    "GET http://www.google.com:80/index.html/ HTTP/1.0\r\nContent-Length:"
