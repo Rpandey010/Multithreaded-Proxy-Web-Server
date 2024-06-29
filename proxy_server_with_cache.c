@@ -42,6 +42,55 @@ pthread_mutex_t lock;
 cache_element* head;
 int cache_size;
 
+
+//Send Error Message Function---------------------------------------------------------
+int sendErrorMessage(int socket, int status_code)
+{
+	char str[1024];
+	char currentTime[50];
+	time_t now = time(0);
+
+	struct tm data = *gmtime(&now);
+	strftime(currentTime,sizeof(currentTime),"%a, %d %b %Y %H:%M:%S %Z", &data);
+
+	switch(status_code)
+	{
+		case 400: snprintf(str, sizeof(str), "HTTP/1.1 400 Bad Request\r\nContent-Length: 95\r\nConnection: keep-alive\r\nContent-Type: text/html\r\nDate: %s\r\nServer: VaibhavN/14785\r\n\r\n<HTML><HEAD><TITLE>400 Bad Request</TITLE></HEAD>\n<BODY><H1>400 Bad Rqeuest</H1>\n</BODY></HTML>", currentTime);
+				  printf("400 Bad Request\n");
+				  send(socket, str, strlen(str), 0);
+				  break;
+
+		case 403: snprintf(str, sizeof(str), "HTTP/1.1 403 Forbidden\r\nContent-Length: 112\r\nContent-Type: text/html\r\nConnection: keep-alive\r\nDate: %s\r\nServer: VaibhavN/14785\r\n\r\n<HTML><HEAD><TITLE>403 Forbidden</TITLE></HEAD>\n<BODY><H1>403 Forbidden</H1><br>Permission Denied\n</BODY></HTML>", currentTime);
+				  printf("403 Forbidden\n");
+				  send(socket, str, strlen(str), 0);
+				  break;
+
+		case 404: snprintf(str, sizeof(str), "HTTP/1.1 404 Not Found\r\nContent-Length: 91\r\nContent-Type: text/html\r\nConnection: keep-alive\r\nDate: %s\r\nServer: VaibhavN/14785\r\n\r\n<HTML><HEAD><TITLE>404 Not Found</TITLE></HEAD>\n<BODY><H1>404 Not Found</H1>\n</BODY></HTML>", currentTime);
+				  printf("404 Not Found\n");
+				  send(socket, str, strlen(str), 0);
+				  break;
+
+		case 500: snprintf(str, sizeof(str), "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 115\r\nConnection: keep-alive\r\nContent-Type: text/html\r\nDate: %s\r\nServer: VaibhavN/14785\r\n\r\n<HTML><HEAD><TITLE>500 Internal Server Error</TITLE></HEAD>\n<BODY><H1>500 Internal Server Error</H1>\n</BODY></HTML>", currentTime);
+				  //printf("500 Internal Server Error\n");
+				  send(socket, str, strlen(str), 0);
+				  break;
+
+		case 501: snprintf(str, sizeof(str), "HTTP/1.1 501 Not Implemented\r\nContent-Length: 103\r\nConnection: keep-alive\r\nContent-Type: text/html\r\nDate: %s\r\nServer: VaibhavN/14785\r\n\r\n<HTML><HEAD><TITLE>404 Not Implemented</TITLE></HEAD>\n<BODY><H1>501 Not Implemented</H1>\n</BODY></HTML>", currentTime);
+				  printf("501 Not Implemented\n");
+				  send(socket, str, strlen(str), 0);
+				  break;
+
+		case 505: snprintf(str, sizeof(str), "HTTP/1.1 505 HTTP Version Not Supported\r\nContent-Length: 125\r\nConnection: keep-alive\r\nContent-Type: text/html\r\nDate: %s\r\nServer: VaibhavN/14785\r\n\r\n<HTML><HEAD><TITLE>505 HTTP Version Not Supported</TITLE></HEAD>\n<BODY><H1>505 HTTP Version Not Supported</H1>\n</BODY></HTML>", currentTime);
+				  printf("505 HTTP Version Not Supported\n");
+				  send(socket, str, strlen(str), 0);
+				  break;
+
+		default:  return -1;
+
+	}
+	return 1;
+}
+
 int connectRemoteServer(char* host_addr, int port_num){
     // Creating Socket for remote server ---------------------------
 
@@ -77,8 +126,7 @@ int connectRemoteServer(char* host_addr, int port_num){
     return remoteSocket;
 }
 
-
-//Handle Request Function
+//Handle Request Function-----------------------------------------------------------------
 int handle_request(int clientSockedId, ParsedRequest *request, char* tempReq){
     char *buf = (char *)malloc(sizeof(char)*MAX_BYTES);
     strcpy(buf, "GET");
@@ -145,7 +193,25 @@ int handle_request(int clientSockedId, ParsedRequest *request, char* tempReq){
 
 //Function to check the HTTP version---------------------------------- 1:27:28
 
-//THREAD FUNCTION
+int checkHTTPversion(char *msg)
+{
+	int version = -1;
+
+	if(strncmp(msg, "HTTP/1.1", 8) == 0)
+	{
+		version = 1;
+	}
+	else if(strncmp(msg, "HTTP/1.0", 8) == 0)			
+	{
+		version = 1;										// Handling this similar to version 1.1
+	}
+	else
+		version = -1;
+
+	return version;
+}
+
+//THREAD FUNCTION-------------------------------------------------------
 void *thread_fn(void *socketNew){
     sem_wait(&semaphore);     // Acquire semaphore lock. If unavailable, wait until it is.
     int p;
@@ -287,4 +353,36 @@ int main(int argc, char* argv[]){
     }
     close(proxy_socketId);
     return 0;
+}
+
+
+cache_element* find(char* url){
+
+// Checks for url in the cache if found returns pointer to the respective cache element or else returns NULL
+    cache_element* site=NULL;
+	//sem_wait(&cache_lock);
+    int temp_lock_val = pthread_mutex_lock(&lock);
+	printf("Remove Cache Lock Acquired %d\n",temp_lock_val); 
+    if(head!=NULL){
+        site = head;
+        while (site!=NULL)
+        {
+            if(!strcmp(site->url,url)){
+				printf("LRU Time Track Before : %ld", site->lru_time_track);
+                printf("\nurl found\n");
+				// Updating the time_track
+				site->lru_time_track = time(NULL);
+				printf("LRU Time Track After : %ld", site->lru_time_track);
+				break;
+            }
+            site=site->next;
+        }       
+    }
+	else {
+    printf("\nurl not found\n");
+	}
+	//sem_post(&cache_lock);
+    temp_lock_val = pthread_mutex_unlock(&lock);
+	printf("Remove Cache Lock Unlocked %d\n",temp_lock_val); 
+    return site;
 }
