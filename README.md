@@ -72,7 +72,13 @@ $ ./proxy <port no.>
 - To run the proxy without cache Change the name of the file (`proxy_server_with_cache.c to proxy_server_without_cache.c`) MakeFile.
 
 ## Demo
-![](https://github.com/Lovepreet-Singh-LPSK/MultiThreadedProxyServerClient/blob/main/pics/cache.png)
+![](media/Output.png)
+#### The server then tried to retrieve the requested URL from its cache. Since it was not found ("url not found"), the server fetched the data from the internet, added it to the cache
+![](media/Output_retrieved_from_server.png)
+#### Data retrived from the Cache
+![](media/Output_retrived_from_cache.png)
+
+
 - When website is opened for the first time (`url not found`) then cache will be miss.
 - Then if you again open that website again then `Data is retrieved from the cache` will be printed.
 
