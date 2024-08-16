@@ -1,0 +1,19 @@
+# Multithreaded-Proxy-Web-Server
+
+``
+http://localhost:8080/https://www.cs.princeton.edu/
+
+``
+
+
+## working
+The output you're seeing is from a multithreaded proxy server running on port 8080.
+ Here's a brief explanation of what's happening:
+
+When you opened a URL on port 8080 in incognito mode, the proxy server received a client connection request. This is indicated by the line "Client is connected with port number: 52705 and ip address: 127.0.0.1". The server then tried to retrieve the requested URL from its cache. Since it was not found ("url not found"), the server fetched the data from the internet, added it to the cache ("Add Cache Lock Acquired 0" and "Add Cache Lock Unlocked 0"), and then sent it back to the client.
+
+When you closed the previous incognito tab and opened the same URL in a new incognito tab, the server again received a client connection request. This time, however, the requested URL was found in the cache ("url found"). The server then retrieved the data from the cache ("Data retrived from the Cache") and sent it back to the client.
+
+The "semaphore value" lines indicate the current value of a semaphore, which is a variable used to control access to a common resource by multiple processes in a concurrent system such as a multitasking operating system. The "Remove Cache Lock Acquired 0" and "Remove Cache Lock Unlocked 0" lines indicate that the server is acquiring and releasing a lock on the cache, which prevents other threads from accessing it at the same time.
+
+The "HTTP/1.1 301 Moved Permanently" and the following lines are the HTTP response that the server received when it requested the URL. This indicates that the URL has been permanently moved to a new location, which is provided in the "Location" header.
